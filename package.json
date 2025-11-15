@@ -1,0 +1,10 @@
+{
+  "name": "storeptz-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "qrcode": "^1.5.1",
+    "moment-timezone": "^0.5.43"
+  }
+}
