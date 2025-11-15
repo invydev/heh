@@ -1,0 +1,86 @@
+<!-- File: public/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>BuyPanel - Demo</title>
+  <style>
+    body{font-family:sans-serif;padding:20px}
+    .card{max-width:480px;margin:0 auto}
+    img.qr{width:220px;height:220px;display:block;margin:10px 0}
+    button{padding:10px 14px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>BuyPanel (Demo)</h2>
+    <label>Username: <input id="username" value="user01"></label><br><br>
+    <label>RAM:
+      <select id="ram">
+        <option value="1gb">1GB</option>
+        <option value="2gb">2GB</option>
+        <option value="3gb">3GB</option>
+        <option value="4gb">4GB</option>
+      </select>
+    </label><br><br>
+    <button id="buy">Buat Order</button>
+
+    <div id="qrArea" style="display:none">
+      <h3>Bayar via QRIS</h3>
+      <img id="qrImg" class="qr" src="">
+      <p>Jumlah: <span id="amount"></span></p>
+      <p>Status: <span id="status">pending</span></p>
+      <button id="check">Cek Pembayaran</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+<script>
+document.getElementById('buy').addEventListener('click', async () => {
+  const username = document.getElementById('username').value.trim();
+  const ram = document.getElementById('ram').value;
+  if (!username) return alert('Masukkan username');
+
+  const resp = await fetch('/api/order', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ username, ram })
+  });
+  const data = await resp.json();
+  if (!data.success) {
+    alert(data.error || 'Error');
+    return;
+  }
+
+  window._order = { depositId: data.depositId, username: data.username, ram: data.ram };
+  document.getElementById('qrImg').src = data.qrImage;
+  document.getElementById('amount').innerText = data.amount;
+  document.getElementById('qrArea').style.display = 'block';
+  document.getElementById('status').innerText = 'pending';
+});
+
+document.getElementById('check').addEventListener('click', async () => {
+  if (!window._order || !window._order.depositId) return alert('Tidak ada order');
+  const resp = await fetch('/api/check-order', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ depositId: window._order.depositId, username: window._order.username, ram: window._order.ram })
+  });
+  const data = await resp.json();
+  if (data.status === 'pending') {
+    document.getElementById('status').innerText = 'pending';
+    alert('Pembayaran belum diterima');
+  } else if (data.status === 'failed') {
+    document.getElementById('status').innerText = 'failed';
+    alert('Pembayaran gagal atau dibatalkan');
+  } else if (data.status === 'success') {
+    document.getElementById('status').innerText = 'success';
+    document.getElementById('result').innerText = 'Panel dibuat: ' + JSON.stringify(data.panelData, null, 2);
+  } else if (data.error) {
+    alert('Error: ' + data.error);
+  }
+});
+</script>
+</body>
+</html>
